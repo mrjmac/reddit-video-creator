@@ -17,3 +17,9 @@ It uses python3 and was tested on ubuntu.
 It takes about 30 seconds to generate a video, however this all depends on comment length
 
 All necessary libraries are listed at the top imports
+
+# Example of output
+
+
+https://user-images.githubusercontent.com/40571030/175141970-2bfffd38-9501-4d13-ae44-84c3f4105ce7.mp4
+
