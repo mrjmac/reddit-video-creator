@@ -12,8 +12,6 @@ Here's how it works:
 # Imporant Info
 It uses python3 and was tested on ubuntu.
 
-It takes about 30 seconds to generate a video, however this all depends on comment length
-
 All necessary libraries are listed at the top imports
 
 # Example of output
