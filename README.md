@@ -10,7 +10,7 @@ Here's how it works:
 5. Process everything together using moviepy
 
 # Imporant Info
-It uses python3 and was tested on ubuntu.
+It uses python3
 
 All necessary libraries are listed at the top imports
 
