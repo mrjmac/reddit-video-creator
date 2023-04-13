@@ -1,5 +1,5 @@
 # Reddit-Video-Creator
-Automatically creates a video which reads out comments in a reddit thread overbackground gameplay, just like you'd see in youtube shorts or on tiktok
+Automatically creates a video which reads out comments in a reddit thread over background gameplay, just like you'd see in youtube shorts or on tiktok
 
 Here's how it works:
 
