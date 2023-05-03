@@ -42,6 +42,7 @@ comment = submission.comments[0].body
 comment_url = "http://www.reddit.com" + submission.comments[0].permalink
 comment_id = submission.comments[0].id
 
+"""
 # screenshot the post title and the top comment
 with sync_playwright() as p:
 
@@ -73,7 +74,7 @@ with sync_playwright() as p:
 
     # locate the div of the comment and screenshot 
     page.locator(f"#t1_{comment_id}").screenshot(path="comment.png")
-
+"""
 # generate tts of the comments
 gTTS(text = comment, lang = language, slow = False).save("comment.mp3")
 gTTS(text = title, lang = language, slow = True).save("title.mp3")
@@ -111,6 +112,7 @@ final = (
 titleaudio = AudioFileClip("title.mp3")
 commentaudio = AudioFileClip("comment.mp3").set_start(title.info.length + 2)
 
+"""
 # convert our sceenshots into imageclips, set their start times, positions, size, and durations
 finalcomment = (
     ImageClip("comment.png")
@@ -126,12 +128,14 @@ finaltitle = (
     .resize(width = 980)
     .set_duration(title.info.length)
 )
+"""
 
 # combine the audioclips
 finalaudio = CompositeAudioClip([titleaudio, commentaudio])
-
+"""
 # combine the video clips
 final = CompositeVideoClip([final, finaltitle, finalcomment])
+"""
 # set the video audio to the final audio file
 final.audio = finalaudio
 # write the video
