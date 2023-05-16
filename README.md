@@ -1,6 +1,6 @@
 # Reddit-Video-Creator
 
-# **IMPORTANT:** Reddit has changed how their posts are stored so this project is temporarily broken. Fix coming next week.
+# **IMPORTANT:** Reddit has changed how their posts are stored so this project is temporarily broken. Fix coming this week. Major rework coming as well.
 
 Automatically creates a video which reads out comments in a reddit thread over background gameplay, just like you'd see in youtube shorts or on tiktok
 
