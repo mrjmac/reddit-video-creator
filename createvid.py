@@ -26,6 +26,8 @@ reddit = praw.Reddit(client_id = client_id, client_secret = client_secret, usern
 target_sub = "AskReddit"
 subreddit = reddit.subreddit(target_sub)
 
+print("Logging in to Reddit!")
+
 # pick one of the top 10 posts on hot to make a video about, grab the post title, url, and id
 randnum = randrange(0, 10)
 i = 0
@@ -36,64 +38,63 @@ for submission in reddit.subreddit(target_sub).hot(limit = 10) :
         url = submission.url
     i += 1
 
-# grab the top comment in the thread, save it's body, url, and id
+print("Post found!")
+
+# grab the enough comments to make a decently long video
+text = []
 submission = reddit.submission(id)
-comment = submission.comments[0].body
-comment_url = "http://www.reddit.com" + submission.comments[0].permalink
-comment_id = submission.comments[0].id
+i = 0
+j = 0
+size = 0
 
-"""
-# screenshot the post title and the top comment
-with sync_playwright() as p:
+while (size < 300) :
+    if (len(submission.comments[i].body) + size < 425) :
+        text.append(submission.comments[i].body.replace(".", ","))
+        size += len(text[j])
+        j += 1
+    i += 1
 
-    # launch browser
-    browser= p.chromium.launch()
-    context = browser.new_context()
+print("Comments found!")
 
-    # navigate to the reddit post and set the screen size
-    page = context.new_page()
-    page.goto(url)
-    page.set_viewport_size(ViewportSize(width = 1920, height = 1080))
-
-    # navigate past NSFW warning if applicable
-    if page.locator('[data-testid="content-gate"]').is_visible():
-            page.locator('[data-testid="content-gate"] button').click()
-
-    # screenshot the title using DOM navigation
-    page.locator('[data-test-id="post-content"]').screenshot(path="title.png")
-
-
-
-    # navigate to the top comment and maintain the same screen size
-    page.goto(comment_url)
-    page.set_viewport_size(ViewportSize(width = 1920, height = 1080))
-    
-    # navigate past NSFW warning if applicable
-    if page.locator('[data-testid="content-gate"]').is_visible():
-            page.locator('[data-testid="content-gate"] button').click()
-
-    # locate the div of the comment and screenshot 
-    page.locator(f"#t1_{comment_id}").screenshot(path="comment.png")
-"""
-# generate tts of the comments
-gTTS(text = comment, lang = language, slow = False).save("comment.mp3")
+# generate tts of the title
 gTTS(text = title, lang = language, slow = True).save("title.mp3")
+
+# generate tts of the comments
+i = 0
+for comment in text :
+    gTTS(text = comment, lang = language, slow = False).save("comment" + str(i) + ".mp3")
+    i += 1
 
 # turn the tts into an mp3 file
 title = MP3("title.mp3")
-comment = MP3("comment.mp3")
+
+comment = []
+for i in range(len(text)) :
+    comment.append(MP3("comment" + str(i) + ".mp3"))
+
+length = [title.info.length]
+total = 0
+for x in comment :
+    length.append(x.info.length)
+    total += x.info.length + 2
+
+print(length)
+
+print("TTS generated!")
 
 # record the total video time
-time = round(title.info.length + comment.info.length + 5)
+time = round(title.info.length + total + 5)
+if not os.path.exists("parkour.mp4") :
+    # download the minecraft parkour video we want to use
+    url = 'https://www.youtube.com/watch?v=a5B8Xx1RPSc'
+    yt = YouTube(url)
 
-# download the minecraft parkour video we want to use
-url = 'https://www.youtube.com/watch?v=a5B8Xx1RPSc'
-yt = YouTube(url)
+    mp4_files = yt.streams.filter(file_extension="mp4")
+    mp4_720p_files = mp4_files.get_by_resolution("720p")
+    mp4_720p_files.download(filename='parkour.mp4')
 
+print("Parkour downloaded!")
 
-mp4_files = yt.streams.filter(file_extension="mp4")
-mp4_720p_files = mp4_files.get_by_resolution("720p")
-mp4_720p_files.download(filename='parkour.mp4')
 
 # download the minecraft parkour video, strip the audio, and cut the video to a random point that lasts the length of the audio
 background = VideoFileClip('parkour.mp4')
@@ -110,38 +111,22 @@ final = (
 
 # convert our mp3s into audiofileclips
 titleaudio = AudioFileClip("title.mp3")
-commentaudio = AudioFileClip("comment.mp3").set_start(title.info.length + 2)
 
-"""
-# convert our sceenshots into imageclips, set their start times, positions, size, and durations
-finalcomment = (
-    ImageClip("comment.png")
-    .set_start(title.info.length + 2)
-    .set_position("center")
-    .resize(width = 980)
-    .set_duration(comment.info.length)
-)
+curr = 0
+commentaudio = []
+for i in range(len(text)) :
+    curr += length[i] + 2
+    commentaudio.append(AudioFileClip("comment" + str(i) + ".mp3").set_start(curr))
 
-finaltitle = (
-    ImageClip("title.png")
-    .set_position("center")
-    .resize(width = 980)
-    .set_duration(title.info.length)
-)
-"""
 
 # combine the audioclips
-finalaudio = CompositeAudioClip([titleaudio, commentaudio])
-"""
-# combine the video clips
-final = CompositeVideoClip([final, finaltitle, finalcomment])
-"""
+finalaudio = CompositeAudioClip([titleaudio, commentaudio[0]])
+for i in range(len(text) - 1) :
+   finalaudio = CompositeAudioClip([finalaudio, commentaudio[i + 1]])
+
+print("Audio generated!")
+
 # set the video audio to the final audio file
 final.audio = finalaudio
 # write the video
 final.write_videofile("final.mp4")
-
-
-
-
-
