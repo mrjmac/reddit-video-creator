@@ -78,8 +78,6 @@ for x in comment :
     length.append(x.info.length)
     total += x.info.length + 2
 
-print(length)
-
 print("TTS generated!")
 
 # record the total video time
@@ -126,7 +124,12 @@ for i in range(len(text) - 1) :
 
 print("Audio generated!")
 
+text_clip = TextClip("test", fontsize = 50, color = 'black', bg_color='white', align = 'center').set_duration(10)
+final = CompositeVideoClip([final, text_clip])
+
 # set the video audio to the final audio file
 final.audio = finalaudio
 # write the video
 final.write_videofile("final.mp4")
+
+print("Video finished!")
