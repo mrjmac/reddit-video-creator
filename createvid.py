@@ -48,11 +48,37 @@ j = 0
 size = 0
 
 while (size < 300) :
+
     if (len(submission.comments[i].body) + size < 425) :
+
         text.append(submission.comments[i].body.replace(".", ","))
         size += len(text[j])
         j += 1
+
     i += 1
+
+captions = []
+
+formatted = ""
+for comment in text :
+
+    rn_len = 0
+    full = comment.split()
+
+    for w in full :
+        if rn_len + len(w) > 40 :
+            formatted = formatted[:-1] + "\n"
+            rn_len = 0
+
+        formatted += w + " "
+        rn_len += len(w)
+
+    formatted = formatted[:-1] + "\n"
+
+captions = formatted.split("\n")
+captions.pop()
+
+print(captions)
 
 print("Comments found!")
 
@@ -124,8 +150,7 @@ for i in range(len(text) - 1) :
 
 print("Audio generated!")
 
-text_clip = TextClip("test", fontsize = 50, color = 'black', bg_color='white', align = 'center').set_duration(10)
-final = CompositeVideoClip([final, text_clip])
+#final = CompositeVideoClip([final, text_clip])
 
 # set the video audio to the final audio file
 final.audio = finalaudio
