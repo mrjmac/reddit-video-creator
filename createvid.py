@@ -59,9 +59,10 @@ while (size < 300) :
 
 captions = []
 
-formatted = ""
+
 for comment in text :
 
+    formatted = ""
     rn_len = 0
     full = comment.split()
 
@@ -74,9 +75,9 @@ for comment in text :
         rn_len += len(w)
 
     formatted = formatted[:-1] + "\n"
-
-captions = formatted.split("\n")
-captions.pop()
+    temp = formatted.split("\n")
+    temp.pop()
+    captions.append(temp)
 
 print(captions)
 
