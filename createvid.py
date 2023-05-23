@@ -7,6 +7,7 @@ from playwright.sync_api import sync_playwright, ViewportSize
 from gtts import gTTS
 from mutagen.mp3 import MP3
 import json
+import cv2
 
 with open("config.json", "r") as f:
     my_dict = json.load(f)
