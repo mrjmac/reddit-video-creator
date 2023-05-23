@@ -3,11 +3,9 @@ import os
 from moviepy.editor import *
 from random import randrange
 import praw
-from playwright.sync_api import sync_playwright, ViewportSize
 from gtts import gTTS
 from mutagen.mp3 import MP3
 import json
-import cv2
 
 with open("config.json", "r") as f:
     my_dict = json.load(f)
@@ -170,11 +168,14 @@ for array in captions :
 
 print("Audio generated!")
 
-#final = CompositeVideoClip([final, text_clip])
+text_clip = TextClip("test", fontsize = 75, color = 'black') 
+
+final = CompositeVideoClip([final, text_clip])
 
 # set the video audio to the final audio file
 final.audio = finalaudio
 # write the video
 final.write_videofile("final.mp4")
+
 
 print("Video finished!")
