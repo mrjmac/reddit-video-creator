@@ -88,22 +88,31 @@ gTTS(text = title, lang = language, slow = True).save("title.mp3")
 
 # generate tts of the comments
 i = 0
-for comment in text :
-    gTTS(text = comment, lang = language, slow = False).save("comment" + str(i) + ".mp3")
-    i += 1
+for array in captions :
+    for comment in array :
+        gTTS(text = comment, lang = language, slow = False).save("comment" + str(i) + ".mp3")
+        i += 1
 
 # turn the tts into an mp3 file
 title = MP3("title.mp3")
 
 comment = []
-for i in range(len(text)) :
-    comment.append(MP3("comment" + str(i) + ".mp3"))
+i = 0
+for array in captions :
+    curr = []
+    for thing in array :
+        curr.append(MP3("comment" + str(i) + ".mp3"))
+        i += 1
+    comment.append(curr)
 
 length = [title.info.length]
 total = 0
-for x in comment :
-    length.append(x.info.length)
-    total += x.info.length + 2
+
+for array in comment :
+    for thing in array :
+        length.append(thing.info.length)
+        total += thing.info.length
+    total += 2
 
 print("TTS generated!")
 
@@ -137,17 +146,26 @@ final = (
 # convert our mp3s into audiofileclips
 titleaudio = AudioFileClip("title.mp3")
 
+i = 0
 curr = 0
 commentaudio = []
-for i in range(len(text)) :
-    curr += length[i] + 2
-    commentaudio.append(AudioFileClip("comment" + str(i) + ".mp3").set_start(curr))
+for array in captions :    
+    for thing in array :
+        curr += length[i]
+        commentaudio.append(AudioFileClip("comment" + str(i) + ".mp3").set_start(curr))
+        i += 1
+    curr += 2
 
 
 # combine the audioclips
 finalaudio = CompositeAudioClip([titleaudio, commentaudio[0]])
-for i in range(len(text) - 1) :
-   finalaudio = CompositeAudioClip([finalaudio, commentaudio[i + 1]])
+
+i = 0
+for array in captions :
+    for thing in array :
+        if i != 0 :
+            finalaudio = CompositeAudioClip([finalaudio, commentaudio[i]])
+        i += 1
 
 print("Audio generated!")
 
