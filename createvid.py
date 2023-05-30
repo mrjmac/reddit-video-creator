@@ -7,6 +7,7 @@ from gtts import gTTS
 from mutagen.mp3 import MP3
 import json
 
+
 with open("config.json", "r") as f:
     my_dict = json.load(f)
 
@@ -165,6 +166,17 @@ for i in range(len(text)) :
     curr += length[i] + 2
     commentaudio.append(AudioFileClip("comment" + str(i) + ".mp3").set_start(curr))
 
+i = 0
+curr = 0
+textclips = []
+for array in captions :
+    for thing in array :
+        text_clip = TextClip(thing, fontsize = 60, color = 'white', stroke_color = 'black', font = 'Nimbus-Sans', stroke_width = 5, align = 'center').set_start(curr).set_duration(caplength[i]).set_position((960, 0))
+        textclips.append(text_clip)
+        curr += caplength[i]
+        i += 1
+    curr += 2
+
 
 # combine the audioclips
 finalaudio = CompositeAudioClip([titleaudio, commentaudio[0]])
@@ -173,14 +185,25 @@ for i in range(len(text) - 1) :
 
 print("Audio generated!")
 
-text_clip = TextClip("test", fontsize = 75, color = 'black') 
-
-final = CompositeVideoClip([final, text_clip])
+i = 0
+for array in captions :
+    for thing in array :
+        final = CompositeVideoClip([final, textclips[i]])
+        i += 1
 
 # set the video audio to the final audio file
 final.audio = finalaudio
 # write the video
+final.set_duration(time)
 final.write_videofile("final.mp4")
 
+for i in range(len(text)) :
+    os.remove("comment" + str(i) + ".mp3")
+
+i = 0
+for array in captions :
+    for thing in array :
+        os.remove("caption" + str(i) + ".mp3")
+        i += 1
 
 print("Video finished!")
