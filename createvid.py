@@ -180,7 +180,7 @@ for comment in text :
     full = comment.split()
 
     for w in full :
-        if rn_len + len(w) > 20 :
+        if rn_len + len(w) > 35 :
             formatted = formatted[:-1] + "\n"
             rn_len = 0
 
@@ -277,9 +277,9 @@ curr = 0
 textclips = []
 for array in captions :
     for thing in array :
-        curr_text_clip = text_clip(thing, font_height = 110, fill_color = (255, 255, 255), stroke_color = (0, 0, 0), font_family = 'Sans', stroke_width = 1, align = 'center').set_start(curr).set_duration(caplength[i]).set_position((0, 540))
+        curr_text_clip = text_clip(thing, font_height = 60, fill_color = (255, 255, 255), stroke_color = (0, 0, 0), font_family = 'Sans', stroke_width = 1, align = 'center').set_start(curr).set_duration(caplength[i] - .1).set_position((0, 540))
         textclips.append(curr_text_clip)
-        curr += caplength[i]
+        curr += caplength[i] - .1
         i += 1
     curr += 2
 
