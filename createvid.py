@@ -7,6 +7,7 @@ from playwright.sync_api import sync_playwright, ViewportSize
 from gtts import gTTS
 from mutagen.mp3 import MP3
 import json
+from youtube_upload.client import YoutubeUploader
 
 with open("config.json", "r") as f:
     my_dict = json.load(f)
@@ -175,3 +176,17 @@ final.audio = finalaudio
 final.write_videofile("final.mp4")
 
 print("Video finished!")
+
+uploader = YoutubeUploader(secrets_file_path='client_secrets.json')
+uploader.authenticate(oauth_path='oauth.json')
+
+options = {
+    "title" : "#shorts #reddit",
+    "description" : "#shorts #reddit",
+    "tags" : ["#shorts", "#reddit"],
+    "categoryId" : "29",
+    "privacyStatus" : "public",
+    "kids" : False,
+}
+
+uploader.upload('final.mp4', options) 
