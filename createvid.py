@@ -8,6 +8,119 @@ from mutagen.mp3 import MP3
 import json
 
 
+try:
+    import gizeh as gz
+    GIZEH_AVAILABLE = True
+except ImportError:
+    GIZEH_AVAILABLE = False
+import numpy as np
+from moviepy.editor import ImageClip
+
+def autocrop(np_img):
+    """Return the numpy image without empty margins."""
+    if len(np_img.shape) == 3:
+        if np_img.shape[2] == 4:
+            thresholded_img = np_img[:,:,3] # use the mask
+        else:
+            thresholded_img = np_img.max(axis=2) # black margins
+    zone_x = thresholded_img.max(axis=0).nonzero()[0]
+    xmin, xmax = zone_x[0], zone_x[-1]
+    zone_y = thresholded_img.max(axis=1).nonzero()[0]
+    ymin, ymax = zone_y[0], zone_y[-1]
+    return np_img[ymin:ymax+1, xmin:xmax+1]
+
+def text_clip(text, font_family, align='left',
+              font_weight='normal', font_slant='normal',
+              font_height = 70, font_width = None,
+              interline= None, fill_color=(0,0,0),
+              stroke_color=(0, 0, 0), stroke_width=2,
+              bg_color=None):
+    """Return an ImageClip displaying a text.
+    
+    Parameters
+    ----------
+    
+    text
+      Any text, possibly multiline
+    
+    font_family
+      For instance 'Impact', 'Courier', whatever is installed
+      on your machine.
+    
+    align
+      Text alignment, either 'left', 'center', or 'right'.
+      
+    font_weight
+      Either 'normal' or 'bold'.
+    
+    font_slant
+      Either 'normal' or 'oblique'.
+    
+    font_height
+      Eight of the font in pixels.
+      
+    font_width
+      Maximal width of a character. This is only used to
+      create a surface large enough for the text. By
+      default it is equal to font_height. Increase this value
+      if your text appears cropped horizontally.
+    
+    interline
+      number of pixels between two lines. By default it will be
+    
+    stroke_width
+      Width of the letters' stroke in pixels.
+      
+    stroke_color
+      For instance (0,0,0) for black stroke or (255,255,255)
+      for white.
+    
+    fill_color=(0,0,0),
+      For instance (0,0,0) for black letters or (255,255,255)
+      for white.
+    
+    bg_color
+      The background color in RGB or RGBA, e.g. (255,100,230)
+      (255,100,230, 128) for semi-transparent. If left to none,
+      the background is fully transparent
+    
+    """
+    
+    if not GIZEH_AVAILABLE:
+        raise ImportError("`text_clip` requires Gizeh installed.")
+
+    stroke_color = np.array(stroke_color)/255.0
+    fill_color = np.array(fill_color)/255.0
+    if bg_color is not None:
+        np.array(bg_color)/255.0
+
+    if font_width is None:
+        font_width = font_height
+    if interline is None:
+        interline = 0.3 * font_height
+    line_height = font_height + interline
+    lines = text.splitlines()
+    max_line = max(len(l) for l in lines)
+    W = int(max_line * font_width + 2 * stroke_width)
+    H = int(len(lines) * line_height + 2 * stroke_width)
+    surface = gz.Surface(width=W, height=H, bg_color=bg_color)
+    xpoint = {
+        'center': W/2,
+        'left': stroke_width + 1,
+        'right': W - stroke_width - 1
+    }[align]
+    for i, line in enumerate(lines):
+        ypoint = (i+1) * line_height
+        text_element = gz.text(line, fontfamily=font_family, fontsize=font_height,
+                               h_align=align, v_align='top',
+                               xy=[xpoint, ypoint], fontslant=font_slant,
+                               stroke=stroke_color, stroke_width=stroke_width,
+                               fill=fill_color)
+        text_element.draw(surface)
+    cropped_img = autocrop(surface.get_npimage(transparent=True))
+    return ImageClip(cropped_img)
+
+
 with open("config.json", "r") as f:
     my_dict = json.load(f)
 
@@ -47,7 +160,7 @@ i = 0
 j = 0
 size = 0
 
-while (size < 300) :
+while (size < 250) :
 
     if (len(submission.comments[i].body) + size < 425) :
 
@@ -67,7 +180,7 @@ for comment in text :
     full = comment.split()
 
     for w in full :
-        if rn_len + len(w) > 40 :
+        if rn_len + len(w) > 20 :
             formatted = formatted[:-1] + "\n"
             rn_len = 0
 
@@ -83,9 +196,6 @@ print(captions)
 
 print("Comments found!")
 
-# generate tts of the title
-gTTS(text = title, lang = language, slow = True).save("title.mp3")
-
 # generate tts of the captions
 i = 0
 for array in captions :
@@ -99,9 +209,7 @@ for comment in text :
     gTTS(text = comment, lang = language, slow = False).save("comment" + str(i) + ".mp3")
     i += 1
 
-# turn the tts into an mp3 file
-title = MP3("title.mp3")
-
+# turn the captions into mp3s
 caption = []
 i = 0
 for array in captions :
@@ -111,6 +219,7 @@ for array in captions :
         i += 1
     caption.append(curr)
 
+# turn the comments into mp3s
 comment = []
 for i in range(len(text)) :
     comment.append(MP3("comment" + str(i) + ".mp3"))
@@ -122,7 +231,7 @@ for array in caption :
     for thing in array :
         caplength.append(thing.info.length)
 
-length = [title.info.length]
+length = []
 total = 0
 for x in comment :
     length.append(x.info.length)
@@ -131,7 +240,7 @@ for x in comment :
 print("TTS generated!")
 
 # record the total video time
-time = round(title.info.length + total + 5)
+time = round(total + 5)
 if not os.path.exists("parkour.mp4") :
     # download the minecraft parkour video we want to use
     url = 'https://www.youtube.com/watch?v=a5B8Xx1RPSc'
@@ -157,22 +266,19 @@ final = (
     .crop(x1=1000, y1=0, x2=2080, y2=1920)
 )
 
-# convert our mp3s into audiofileclips
-titleaudio = AudioFileClip("title.mp3")
-
 curr = 0
 commentaudio = []
 for i in range(len(text)) :
-    curr += length[i] + 2
     commentaudio.append(AudioFileClip("comment" + str(i) + ".mp3").set_start(curr))
+    curr += length[i] + 2
 
 i = 0
 curr = 0
 textclips = []
 for array in captions :
     for thing in array :
-        text_clip = TextClip(thing, fontsize = 60, color = 'white', stroke_color = 'black', font = 'Nimbus-Sans', stroke_width = 1, align = 'center').set_start(curr).set_duration(caplength[i]).set_position((0, 540))
-        textclips.append(text_clip)
+        curr_text_clip = text_clip(thing, font_height = 110, fill_color = (255, 255, 255), stroke_color = (0, 0, 0), font_family = 'Sans', stroke_width = 1, align = 'center').set_start(curr).set_duration(caplength[i]).set_position((0, 540))
+        textclips.append(curr_text_clip)
         curr += caplength[i]
         i += 1
     curr += 2
