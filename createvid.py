@@ -41,7 +41,7 @@ for submission in reddit.subreddit(target_sub).hot(limit = 10) :
 print("Post found!")
 
 # grab the enough comments to make a decently long video
-text = []
+text = [title]
 submission = reddit.submission(id)
 i = 0
 j = 0
@@ -115,7 +115,7 @@ comment = []
 for i in range(len(text)) :
     comment.append(MP3("comment" + str(i) + ".mp3"))
 
-caplength = [title.info.length]
+caplength = []
 total = 0
 
 for array in caption :
@@ -171,7 +171,7 @@ curr = 0
 textclips = []
 for array in captions :
     for thing in array :
-        text_clip = TextClip(thing, fontsize = 60, color = 'white', stroke_color = 'black', font = 'Nimbus-Sans', stroke_width = 5, align = 'center').set_start(curr).set_duration(caplength[i]).set_position((960, 0))
+        text_clip = TextClip(thing, fontsize = 60, color = 'white', stroke_color = 'black', font = 'Nimbus-Sans', stroke_width = 1, align = 'center').set_start(curr).set_duration(caplength[i]).set_position((0, 540))
         textclips.append(text_clip)
         curr += caplength[i]
         i += 1
@@ -179,7 +179,7 @@ for array in captions :
 
 
 # combine the audioclips
-finalaudio = CompositeAudioClip([titleaudio, commentaudio[0]])
+finalaudio = commentaudio[0]
 for i in range(len(text) - 1) :
    finalaudio = CompositeAudioClip([finalaudio, commentaudio[i + 1]])
 
