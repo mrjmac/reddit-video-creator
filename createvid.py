@@ -3,123 +3,10 @@ import os
 from moviepy.editor import *
 from random import randrange
 import praw
+from playwright.sync_api import sync_playwright, ViewportSize
 from gtts import gTTS
 from mutagen.mp3 import MP3
 import json
-
-
-try:
-    import gizeh as gz
-    GIZEH_AVAILABLE = True
-except ImportError:
-    GIZEH_AVAILABLE = False
-import numpy as np
-from moviepy.editor import ImageClip
-
-def autocrop(np_img):
-    """Return the numpy image without empty margins."""
-    if len(np_img.shape) == 3:
-        if np_img.shape[2] == 4:
-            thresholded_img = np_img[:,:,3] # use the mask
-        else:
-            thresholded_img = np_img.max(axis=2) # black margins
-    zone_x = thresholded_img.max(axis=0).nonzero()[0]
-    xmin, xmax = zone_x[0], zone_x[-1]
-    zone_y = thresholded_img.max(axis=1).nonzero()[0]
-    ymin, ymax = zone_y[0], zone_y[-1]
-    return np_img[ymin:ymax+1, xmin:xmax+1]
-
-def text_clip(text, font_family, align='left',
-              font_weight='normal', font_slant='normal',
-              font_height = 70, font_width = None,
-              interline= None, fill_color=(0,0,0),
-              stroke_color=(0, 0, 0), stroke_width=2,
-              bg_color=None):
-    """Return an ImageClip displaying a text.
-    
-    Parameters
-    ----------
-    
-    text
-      Any text, possibly multiline
-    
-    font_family
-      For instance 'Impact', 'Courier', whatever is installed
-      on your machine.
-    
-    align
-      Text alignment, either 'left', 'center', or 'right'.
-      
-    font_weight
-      Either 'normal' or 'bold'.
-    
-    font_slant
-      Either 'normal' or 'oblique'.
-    
-    font_height
-      Eight of the font in pixels.
-      
-    font_width
-      Maximal width of a character. This is only used to
-      create a surface large enough for the text. By
-      default it is equal to font_height. Increase this value
-      if your text appears cropped horizontally.
-    
-    interline
-      number of pixels between two lines. By default it will be
-    
-    stroke_width
-      Width of the letters' stroke in pixels.
-      
-    stroke_color
-      For instance (0,0,0) for black stroke or (255,255,255)
-      for white.
-    
-    fill_color=(0,0,0),
-      For instance (0,0,0) for black letters or (255,255,255)
-      for white.
-    
-    bg_color
-      The background color in RGB or RGBA, e.g. (255,100,230)
-      (255,100,230, 128) for semi-transparent. If left to none,
-      the background is fully transparent
-    
-    """
-    
-    if not GIZEH_AVAILABLE:
-        raise ImportError("`text_clip` requires Gizeh installed.")
-
-    stroke_color = np.array(stroke_color)/255.0
-    fill_color = np.array(fill_color)/255.0
-    if bg_color is not None:
-        np.array(bg_color)/255.0
-
-    if font_width is None:
-        font_width = font_height
-    if interline is None:
-        interline = 0.3 * font_height
-    line_height = font_height + interline
-    lines = text.splitlines()
-    max_line = max(len(l) for l in lines)
-    W = int(max_line * font_width + 2 * stroke_width)
-    H = int(len(lines) * line_height + 2 * stroke_width)
-    surface = gz.Surface(width=W, height=H, bg_color=bg_color)
-    xpoint = {
-        'center': W/2,
-        'left': stroke_width + 1,
-        'right': W - stroke_width - 1
-    }[align]
-    for i, line in enumerate(lines):
-        ypoint = (i+1) * line_height
-        text_element = gz.text(line, fontfamily=font_family, fontsize=font_height,
-                               h_align=align, v_align='top',
-                               xy=[xpoint, ypoint], fontslant=font_slant,
-                               stroke=stroke_color, stroke_width=stroke_width,
-                               fill=fill_color)
-        text_element.draw(surface)
-    cropped_img = autocrop(surface.get_npimage(transparent=True))
-    return ImageClip(cropped_img)
-
 
 with open("config.json", "r") as f:
     my_dict = json.load(f)
@@ -154,95 +41,104 @@ for submission in reddit.subreddit(target_sub).hot(limit = 10) :
 print("Post found!")
 
 # grab the enough comments to make a decently long video
-text = [title]
+text = [[title, id, url]]
 submission = reddit.submission(id)
 i = 0
 j = 0
 size = 0
 
-while (size < 250) :
+while (size < 250 and len(text) < 4) :
 
-    if (len(submission.comments[i].body) + size < 425) :
+    if (len(submission.comments[i].body) + size < 350) :
 
-        text.append(submission.comments[i].body.replace(".", ","))
-        size += len(text[j])
+        text.append([submission.comments[i].body.replace(".", ","), submission.comments[i].id, "http://www.reddit.com" + submission.comments[i].permalink])
+        size += len(text[j][0])
         j += 1
 
     i += 1
 
-
-captions = []
-
-for comment in text :
-
-    formatted = ""
-    rn_len = 0
-    full = comment.split()
-
-    for w in full :
-        if rn_len + len(w) > 35 :
-            formatted = formatted[:-1] + "\n"
-            rn_len = 0
-
-        formatted += w + " "
-        rn_len += len(w)
-
-    formatted = formatted[:-1] + "\n"
-    temp = formatted.split("\n")
-    temp.pop()
-    captions.append(temp)
-
-print(captions)
-
 print("Comments found!")
 
-# generate tts of the captions
-i = 0
-for array in captions :
-    for comment in array :
-        gTTS(text = comment, lang = language, slow = False).save("caption" + str(i) + ".mp3")
+# screenshot the post title and the top comment
+with sync_playwright() as p:
+
+    # launch browser
+    browser= p.chromium.launch()
+    context = browser.new_context()
+    page = context.new_page()
+    page.goto("https://www.reddit.com/login")
+    page.wait_for_load_state()
+
+    page.locator('[name="username"]').fill(username)
+    page.locator('[name="password"]').fill(password)
+    page.locator("button[class$='m-full-width']").click()
+    page.wait_for_timeout(5000)
+    page.wait_for_load_state()
+
+    i = 0
+    for content in text :
+        # navigate to the reddit post and set the screen size
+        page.goto(content[2])
+        page.wait_for_load_state()
+        page.set_viewport_size(ViewportSize(width = 1920, height = 1080))
+
+        # navigate past NSFW warning if applicable
+        if page.locator('[class="px-md button-medium px-[length:var(--rem14)] button-secondary   button inline-flex justify-center"]').is_visible():
+                page.locator('[class="px-md button-medium px-[length:var(--rem14)] button-secondary   button inline-flex justify-center"]').click()
+
+        # screenshot the content using DOM navigation
+        if (i == 0) :
+            page.locator("#t3_" + content[1]).screenshot(path="screenshot0.png")
+        if (i != 0) :
+            page.locator("#t1_" + content[1]).screenshot(path="screenshot" + str(i) + ".png")
+
         i += 1
 
-# generate tts of the comments
+print("Screenshots taken!")
+
+# generate tts of the content
 i = 0
-for comment in text :
-    gTTS(text = comment, lang = language, slow = False).save("comment" + str(i) + ".mp3")
+for content in text :
+    gTTS(text = content[0], lang = language, slow = False).save("content" + str(i) + ".mp3")
     i += 1
 
-# turn the captions into mp3s
-caption = []
-i = 0
-for array in captions :
-    curr = []
-    for thing in array :
-        curr.append(MP3("caption" + str(i) + ".mp3"))
-        i += 1
-    caption.append(curr)
-
-# turn the comments into mp3s
-comment = []
+# turn the tts into an mp3 file
+contentmp3 = []
 for i in range(len(text)) :
-    comment.append(MP3("comment" + str(i) + ".mp3"))
+    contentmp3.append(MP3("content" + str(i) + ".mp3"))
 
-caplength = []
-total = 0
-
-for array in caption :
-    for thing in array :
-        caplength.append(thing.info.length)
-
+# record the total video time
 length = []
 total = 0
-for x in comment :
+for x in contentmp3 :
     length.append(x.info.length)
     total += x.info.length + 2
 
-print("TTS generated!")
+time = round(total + 3)
 
-# record the total video time
-time = round(total + 5)
+# convert our mp3s into audiofileclips
+curr = 0
+audiofileclips = []
+imageclips = []
+
+for i in range(len(text)) :
+    audiofileclips.append(AudioFileClip("content" + str(i) + ".mp3").set_start(curr))
+    imageclips.append(ImageClip("screenshot" + str(i) + ".png").set_start(curr).set_position("center").resize(width = 980).set_duration(contentmp3[i].info.length))
+    curr += length[i] + 2
+
+# combine the audioclips
+finalaudio = audiofileclips[0]
+for i in range(len(text) - 1) :
+   finalaudio = CompositeAudioClip([finalaudio, audiofileclips[i + 1]])
+
+# delete the mp3s
+for i in range(len(text)) :
+    os.remove("content" + str(i) + ".mp3")
+
+print("Audio generated!")
+
+# download the minecraft parkour video we want to use
 if not os.path.exists("parkour.mp4") :
-    # download the minecraft parkour video we want to use
     url = 'https://www.youtube.com/watch?v=a5B8Xx1RPSc'
     yt = YouTube(url)
 
@@ -251,7 +147,6 @@ if not os.path.exists("parkour.mp4") :
     mp4_720p_files.download(filename='parkour.mp4')
 
 print("Parkour downloaded!")
-
 
 # download the minecraft parkour video, strip the audio, and cut the video to a random point that lasts the length of the audio
 background = VideoFileClip('parkour.mp4')
@@ -266,50 +161,17 @@ final = (
     .crop(x1=1000, y1=0, x2=2080, y2=1920)
 )
 
-curr = 0
-commentaudio = []
 for i in range(len(text)) :
-    commentaudio.append(AudioFileClip("comment" + str(i) + ".mp3").set_start(curr))
-    curr += length[i] + 2
+   final = CompositeVideoClip([final, imageclips[i]])
 
-i = 0
-curr = 0
-textclips = []
-for array in captions :
-    for thing in array :
-        curr_text_clip = text_clip(thing, font_height = 60, fill_color = (255, 255, 255), stroke_color = (0, 0, 0), font_family = 'Sans', stroke_width = 1, align = 'center').set_start(curr).set_duration(caplength[i] - .1).set_position((0, 540))
-        textclips.append(curr_text_clip)
-        curr += caplength[i] - .1
-        i += 1
-    curr += 2
-
-
-# combine the audioclips
-finalaudio = commentaudio[0]
-for i in range(len(text) - 1) :
-   finalaudio = CompositeAudioClip([finalaudio, commentaudio[i + 1]])
-
-print("Audio generated!")
-
-i = 0
-for array in captions :
-    for thing in array :
-        final = CompositeVideoClip([final, textclips[i]])
-        i += 1
+# delete the mp3s
+for i in range(len(text)) :
+    os.remove("screenshot" + str(i) + ".png")
 
 # set the video audio to the final audio file
 final.audio = finalaudio
+
 # write the video
-final.set_duration(time)
 final.write_videofile("final.mp4")
-
-for i in range(len(text)) :
-    os.remove("comment" + str(i) + ".mp3")
-
-i = 0
-for array in captions :
-    for thing in array :
-        os.remove("caption" + str(i) + ".mp3")
-        i += 1
 
 print("Video finished!")
