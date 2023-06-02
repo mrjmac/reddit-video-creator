@@ -1,7 +1,5 @@
 # Reddit-Video-Creator
 
-# **IMPORTANT:** Reddit has changed how their posts are stored so this project is temporarily broken. Fix and rework in progress.
-
 Automatically creates a video which reads out comments in a reddit thread over background gameplay, just like you'd see in youtube shorts or on tiktok
 
 Here's how it works:
@@ -11,14 +9,18 @@ Here's how it works:
 3. Generate text to speech for the comment and title
 4. Download minecraft gameplay and cut to a random part
 5. Process everything together using moviepy
+6. Uploads the video to YouTube
 
 # Imporant Info
 It uses python3
 
 All necessary libraries are listed at the top imports
 
-# Example of output
+# Program in action (Sped up, runtime is ~5 mins due to moviepy being slow)
 
+https://github.com/mrjmac/reddit-video-creator/assets/40571030/8da1e2aa-0881-4735-bd3f-bc073d24b777
 
-https://user-images.githubusercontent.com/40571030/175141970-2bfffd38-9501-4d13-ae44-84c3f4105ce7.mp4
+# Video produced in above clip
+
+https://www.youtube.com/shorts/-j2KrMVZreo
 
