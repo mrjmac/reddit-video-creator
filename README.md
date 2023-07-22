@@ -9,7 +9,7 @@ Here's how it works:
 3. Generate text to speech for the comment and title
 4. Download minecraft gameplay and cut to a random part
 5. Process everything together using moviepy
-6. Uploads the video to YouTube
+6. Gives you a prompt to upload to YouTube
 
 # Imporant Info
 It uses python3
